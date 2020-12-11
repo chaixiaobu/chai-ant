@@ -1,0 +1,371 @@
+/* 下拉菜单 */
+.ant-dropdown-link {
+    display    : flex;
+    align-items: center;
+
+    .u-avatar {
+        display         : inline-block;
+        width           : 42px;
+        height          : 42px;
+        line-height     : 42px;
+        margin-right    : 10px;
+        text-align      : center;
+        vertical-align  : middle;
+        border-radius   : 50%;
+        font-size       : 20px;
+        background-color: #d2e2ff;
+        color           : #4196ff;
+    }
+
+    .icon-right {
+        display  : inline-block;
+        transform: scale(0.5);
+    }
+
+    .iconfont {
+        font-size  : 12px;
+        margin-left: 64px;
+    }
+
+    .anticon {
+        display    : none !important;
+        margin-left: 32px;
+    }
+}
+
+/* 面包屑 */
+.ant-breadcrumb {
+    padding-top: 20px;
+    color      : rgba(0, 0, 0, 0.85);
+
+    .ant-breadcrumb-separator {
+        color: rgba(0, 0, 0, 0.45);
+    }
+
+    a {
+        color: inherit;
+    }
+
+    &>span:last-child {
+        color: rgba(0, 0, 0, 0.45);
+    }
+}
+
+/* 分页 */
+.ant-pagination {
+    padding   : 49px 0 58px;
+    text-align: center;
+}
+
+/* dialog */
+.ant-modal {
+    text-align: center;
+}
+
+.ant-modal-title {
+    font-weight: bold;
+}
+
+.ant-modal-body {
+    padding: 34px;
+}
+
+.ant-modal-header {
+    border-bottom: 1px solid #e8e8e8;
+}
+
+.ant-modal-footer {
+    text-align: center;
+    border-top: 1px solid #e8e8e8;
+}
+
+.ant-modal-footer .ant-btn {
+    height     : 32px;
+    line-height: 32px;
+}
+
+.ant-modal-confirm {
+    .ant-modal-body {
+        padding: 0;
+
+        .ant-modal-confirm-body {
+            .ant-modal-confirm-title {
+                padding    : 16px 24px;
+                font-weight: bold;
+            }
+
+            .ant-modal-confirm-content {
+                padding      : 34px;
+                margin-top   : 0;
+                border-top   : 1px solid #e8e8e8;
+                border-bottom: 1px solid #e8e8e8;
+            }
+
+            &>.anticon+.ant-modal-confirm-title+.ant-modal-confirm-content {
+                margin-left: 0;
+            }
+        }
+    }
+
+    .ant-modal-confirm-btns {
+        padding   : 10px 16px;
+        margin-top: 0;
+        float     : initial;
+
+        .ant-btn {
+            height     : 32px;
+            line-height: 32px;
+        }
+    }
+}
+
+.ant-modal-confirm-body>.anticon {
+    display       : none;
+    float         : initial;
+    margin-right  : 5px;
+    vertical-align: top;
+}
+
+.ant-modal-confirm .ant-modal-close {
+    display: initial;
+}
+
+/* dialog 中表单样式 */
+.ant-modal-form {
+    width: 480px !important;
+}
+
+.ant-form {
+    .ant-form-item {
+        display: flex;
+    }
+
+    .ant-form-item-label {
+        // width       : 60px;
+        flex          : 1;
+        margin-right  : 22px;
+        vertical-align: top;
+
+        &>label {
+            font-size: 16px;
+            color    : rgba(112, 112, 112, 1);
+
+            &::after {
+                content: initial;
+            }
+        }
+
+    }
+
+    .ant-form-item-with-help {
+        margin-bottom: 2px;
+    }
+
+    .ant-form-item-control-wrapper {
+        display: inline-block;
+        width  : 320px;
+
+        .ant-form-item-control {
+            height: auto;
+        }
+    }
+
+    /*增加高度自适应类*/
+    .ant-form-item-height-auto {
+        .ant-form-item-control-wrapper {
+            .ant-form-item-control {
+                height: auto;
+            }
+        }
+
+    }
+
+    .ant-form-explain,
+    .ant-form-split {
+        padding-left : 11px;
+        text-align   : left;
+        margin-top   : 0;
+        margin-bottom: 0;
+    }
+
+    .ant-input {
+        height     : 40px;
+        font-size  : 14px;
+        font-weight: bold;
+    }
+
+    .ant-select-selection--single {
+        height: 40px;
+    }
+
+    .ant-select-selection__rendered {
+        line-height: 38px;
+    }
+
+    .ant-select-selection-selected-value {
+        font-size  : 14px;
+        font-weight: bold;
+    }
+
+
+}
+
+/* 针对50px的 */
+.ant-form.ant-from-lg {
+    .ant-form-item-label {
+        max-width  : 60px;
+        line-height: 50px;
+
+        &>label {
+            font-size: 18px;
+        }
+    }
+
+    .ant-input {
+        height   : 50px;
+        font-size: 16px;
+    }
+
+    .ant-select-selection--single {
+        height: 50px;
+    }
+
+    .ant-select-selection__rendered {
+        display    : flex;
+        align-items: center;
+        line-height: 48px;
+    }
+
+    .ant-select-selection-selected-value {
+        font-size  : 16px;
+        font-weight: bold;
+    }
+
+    .ant-calendar-picker {
+        .ant-calendar-picker-input {
+            .ant-calendar-range-picker-input {
+                width    : 100px;
+                font-size: 16px;
+            }
+        }
+
+        .ant-calendar-range-picker-separator {
+            margin     : 0 15px;
+            line-height: 40px;
+        }
+    }
+}
+
+/* 日期筛选框 */
+.ant-calendar-picker {
+    .ant-calendar-picker-input {
+        text-align: left;
+
+        .ant-calendar-range-picker-input {
+            width      : 100px;
+            font-size  : 14px;
+            font-weight: bold;
+        }
+    }
+
+    .ant-calendar-range-picker-separator {
+        margin     : 0 15px;
+        color      : #4b4b4b;
+        line-height: 30px;
+    }
+}
+
+/* ant-input */
+.ant-input[disabled],
+.ant-input-disabled {
+    color           : inherit;
+    background-color: #f5f5f5;
+    cursor          : not-allowed;
+    opacity         : 1;
+    border          : none;
+}
+
+.ant-select-disabled .ant-select-selection {
+    color : rgba(0, 0, 0, 0.65);
+    border: none;
+}
+
+.ant-input-affix-wrapper .ant-input:not(:first-child) {
+    padding-left: 58px;
+}
+
+.ant-input-affix-wrapper {
+    font-size: 20px;
+}
+
+.ant-input-prefix .iconfont {
+    color    : #1B84FF;
+    font-size: 32px;
+}
+
+/* 搜索框 */
+.ant-input-search {
+    display       : inline-block;
+    width         : 400px;
+    vertical-align: top;
+
+    .ant-input-affix-wrapper .ant-input-prefix {
+        left     : 32px;
+        font-size: 16px;
+        color    : #BCBCCB;
+
+        .iconfont {
+            font-size: inherit;
+            color    : inherit;
+        }
+    }
+
+    .ant-input {
+        height      : 45px;
+        padding-left: 58px;
+        font-size   : 14px;
+    }
+
+    .ant-btn {
+        height: 45px;
+    }
+}
+
+/* ant-tooltip */
+.ant-tooltip-inner{
+    background-color: #ffffff;
+    color: #707070;
+    box-shadow: 0px 10px 10px rgba(0,0,0,0.1);
+}
+
+/* 穿梭框 */
+.ant-transfer {
+    .ant-input {
+        height   : 32px;
+        font-size: 14px;
+    }
+}
+
+/* 按钮样式 */
+.ant-btn {
+    height   : 45px;
+    font-size: 16px;
+
+    .iconfont {
+        margin-right: 19px;
+    }
+
+}
+
+.ant-btn-lg {
+    height: 50px;
+}
+
+.ant-btn-sm {
+    height: 40px;
+}
+
+.ant-btn-mini {
+    height   : 32px;
+    font-size: 14px;
+}
