@@ -35,6 +35,11 @@ const routes = [
     path: '/agoraRTM',
     name: 'AgoraRTM',
     component: () => import('../views/AgoraRTM')
+  },
+  {
+    path: '/boardClient',
+    name: 'BoardClient',
+    component: () => import('../views/BoardClient')
   }
 ]
 
