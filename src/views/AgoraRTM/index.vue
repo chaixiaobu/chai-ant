@@ -84,7 +84,7 @@
       <br />
       <a-row :gutter="8">
         <a-col :span="10">
-          <a-input v-model="data.queryMember" placeholder="请输入queryMember">
+          <a-input v-model="data.memberId" placeholder="请输入memberId">
             <a-icon slot="prefix" type="user" />
           </a-input>
         </a-col>
@@ -95,11 +95,40 @@
         </a-col>
       </a-row>
     </a-input-group>
+    <a-row :gutter="8">
+      <a-col :span="10">
+        <img :src="imgSrc" alt="" />
+        <img :src="img" alt="" v-for="img in imgList" :key="img" />
+      </a-col>
+      <a-col :span="8">
+        <a-button type="primary" @click="sendPeerImg">
+          Peer send
+        </a-button>
+      </a-col>
+      <a-col :span="8">
+        <a-button type="primary" @click="sendChannelImg">
+          Channel send
+        </a-button>
+      </a-col>
+    </a-row>
+    <a-row :gutter="8">
+      <a-col :span="8">
+        <a-button type="primary" @click="sendCall">
+          呼叫邀请
+        </a-button>
+      </a-col>
+      <a-col :span="8">
+        <a-button type="primary" @click="sendChannelCall">
+          群聊呼叫邀请
+        </a-button>
+      </a-col>
+    </a-row>
   </div>
 </template>
 
 <script>
 import AgoraRTM from '@/utils/AgoraJS/agora-rtm-client'
+import { imageToBlob, blobToImage } from '@/utils/common'
 export default {
   data() {
     return {
@@ -130,15 +159,17 @@ export default {
         channelMessage: '',
         peerId: '',
         peerMessage: '',
-        queryMember: ''
-      }
+        memberId: ''
+      },
+      imgSrc: require('../../assets/logo.png'),
+      imgList: []
     }
   },
   mounted() {
-    this.init()
+    this.initWatch()
   },
   methods: {
-    init() {
+    initWatch() {
       this.rtm = new AgoraRTM()
       const rtm = this.rtm
 
@@ -147,22 +178,74 @@ export default {
       })
 
       rtm.on('MessageFromPeer', async (message, peerId) => {
-        console.log('message, peerId', message, peerId)
+        if (message.messageType === 'IMAGE') {
+          const blob = await rtm.client.downloadMedia(message.mediaId)
+          blobToImage(blob, image => {
+            // console.log('image', image.src)
+            this.imgList.push(image.src)
+          })
+        } else {
+          console.log('message, peerId', message.text, peerId)
+        }
       })
-
+      rtm.on('MemberJoined', ({ chaN, args }) => {
+        const memberId = args[0]
+        console.log('MemberJoined 加入通知 ', chaN, memberId)
+      })
       rtm.on('MemberLeft', ({ chaN, args }) => {
-        console.log('{ chaN, args }', chaN, args)
+        console.log('MemberLeft 离开通知', chaN, args)
       })
 
       rtm.on('ChannelMessage', async ({ chaN, args }) => {
         const [message, memberId] = args
         if (message.messageType === 'IMAGE') {
           const blob = await rtm.client.downloadMedia(message.mediaId)
-          console.log('bolb', blob)
+          // console.log('bolb', blob)
+          blobToImage(blob, image => {
+            // console.log('image', image.src)
+            this.imgList.push(image.src)
+          })
         } else {
           console.log(chaN, message.text, memberId)
         }
       })
+
+      rtm.on('RemoteInvitationReceived', res => {
+        console.log('res===================1', res)
+        rtm._remoteInvitation = res
+        rtm.subscribeRemoteInvitation()
+        this.$confirm({
+          title: res.callerId + '向你发来呼叫邀请！',
+          content: '',
+          okText: '接受',
+          okType: 'danger',
+          cancelText: '拒绝',
+          onOk() {
+            rtm.acceptCall()
+          },
+          onCancel() {
+            rtm.refuseCall()
+          }
+        })
+      })
+
+      // rtm.on('LocalInvitationReceivedByPeer', res => {
+      //   console.log('res===================', res)
+      //   // rtm.subscribeRemoteInvitation()
+      //   this.$confirm({
+      //     title: res.callerId + '向你发来呼叫邀请！',
+      //     content: '',
+      //     okText: '接受',
+      //     okType: 'danger',
+      //     cancelText: '拒绝',
+      //     onOk() {
+      //       rtm.acceptCall()
+      //     },
+      //     onCancel() {
+      //       rtm.refuseCall()
+      //     }
+      //   })
+      // })
     },
     // 加入频道
     async handleJoin() {
@@ -198,7 +281,6 @@ export default {
     // 加入群聊
     async handleJoinChannel() {
       await this.joinChannelValidate()
-
       const rtm = this.rtm
       const chaN = this.form.channelName
       if (
@@ -214,14 +296,12 @@ export default {
       })
     },
     // 退出群聊
-    handleExitChannel() {
+    async handleExitChannel() {
+      await this.checkLogin()
+
       const chaN = this.form.channelName
       const rtm = this.rtm
 
-      if (!rtm._logined) {
-        this.$message.error('Please Login First')
-        return
-      }
       if (
         !rtm.channels[chaN] ||
         (rtm.channels[chaN] && !rtm.channels[chaN].joined)
@@ -238,9 +318,74 @@ export default {
         }
       })
     },
-    sendChannel() {},
-    sendPeer() {},
-    sendQuery() {},
+    async sendChannel() {
+      await this.checkLogin()
+      await this.checkJoin()
+      const rtm = this.rtm
+      const params = this.data
+
+      rtm
+        .sendChannelMessage(params.channelMessage, this.form.channelName)
+        .then(() => {
+          // 置空
+          params.channelMessage = ''
+          this.$message.success('发送成功')
+        })
+    },
+    async sendPeer() {
+      await this.checkLogin()
+
+      const rtm = this.rtm
+      const params = this.data
+      rtm.sendPeerMessage(params.peerMessage, params.peerId).then(() => {
+        // 置空
+        params.peerMessage = ''
+        this.$message.success('发送成功')
+      })
+    },
+    async sendQuery() {
+      await this.checkLogin()
+
+      const rtm = this.rtm
+      const params = this.data
+      rtm.queryPeersOnlineStatus(params.memberId).then(res => {
+        res[params.memberId]
+          ? this.$message.success(params.memberId + '在线！')
+          : this.$message.success(params.memberId + '不在线！')
+      })
+    },
+    async sendPeerImg() {
+      await this.checkLogin()
+
+      const rtm = this.rtm
+      const params = this.data
+      imageToBlob(this.imgSrc, blob => {
+        rtm.sendMessageToPeer(blob, params.peerId).then(() => {
+          this.$message.success('图片发送成功！')
+        })
+      })
+    },
+    async sendChannelImg() {
+      await this.checkLogin()
+
+      const rtm = this.rtm
+      const chaN = this.form.channelName
+      imageToBlob(this.imgSrc, blob => {
+        rtm.sendChannelMediaMessage(blob, chaN).then(() => {
+          this.$message.success('群聊图片发送成功！')
+        })
+      })
+    },
+    async sendCall() {
+      await this.checkLogin()
+      const rtm = this.rtm
+      rtm.sendCall(this.data.peerId)
+    },
+    async sendChannelCall() {
+      await this.checkLogin()
+      const rtm = this.rtm
+      rtm.sendCall(this.form.channelName)
+    },
     joinValidate() {
       return new Promise(resolve => {
         this.$refs.form.validate(valid => {
@@ -249,12 +394,9 @@ export default {
         })
       })
     },
-    joinChannelValidate() {
+    async joinChannelValidate() {
+      await this.checkLogin()
       return new Promise(resolve => {
-        if (!this.rtm._logined) {
-          this.$message.error('Please Login First')
-          return
-        }
         this.joinValidate().then(() => {
           if (!this.form.channelName) {
             this.$message.error('请输入channelName')
@@ -263,6 +405,30 @@ export default {
 
           resolve()
         })
+      })
+    },
+    checkLogin() {
+      return new Promise(resolve => {
+        const rtm = this.rtm
+        if (!rtm._logined) {
+          this.$message.error('Please Login First')
+          return
+        }
+        resolve()
+      })
+    },
+    checkJoin() {
+      return new Promise(resolve => {
+        const rtm = this.rtm
+        const chaN = this.form.channelName
+        if (
+          !rtm.channels[chaN] ||
+          (rtm.channels[chaN] && !rtm.channels[chaN].joined)
+        ) {
+          this.$message.error('Please Join first')
+          return
+        }
+        resolve()
       })
     }
   }
