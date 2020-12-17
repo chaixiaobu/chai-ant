@@ -1,22 +1,26 @@
 import AgoraRTM from 'agora-rtm-sdk'
 import EventEmitter from 'events'
+import { AGORA_APP_ID } from '@/utils/env'
 
 export default class RTCClient extends EventEmitter {
   constructor() {
     super()
+    this._client = AgoraRTM.createInstance(AGORA_APP_ID)
     // 加入频道的集合
     this.channels = {}
-    this._client = null
     this._logined = false
     this._invitation = null
     this._remoteInvitation = null
+    this._status = 'offLine' //onLine, offLine, calling, meeting
 
     this.handleError = err => {
       console.log('Error', err)
     }
+
+    this.peerInvitation()
   }
-  init(appId) {
-    this._client = AgoraRTM.createInstance(appId)
+  init() {
+    // this._client = AgoraRTM.createInstance(appId)
 
     this.subscribeClientEvents()
   }
@@ -149,30 +153,63 @@ export default class RTCClient extends EventEmitter {
     })
   }
   // 发送呼叫
-  async sendCall(calleeId) {
+  sendCall(calleeId) {
     if (this._invitation !== null) {
       this._invitation.removeAllListeners()
       this._invitation = null
     }
     // 创建 LocalInvitation
-    this._invitation = await this._client.createLocalInvitation(calleeId)
-    this.subscribeLocalInvitation()
+    this._invitation = this._client.createLocalInvitation(calleeId)
+    //Local monitoring and inviting peers
+    this._invitation.on('LocalInvitationReceivedByPeer', () => {
+      this.status = 'calling'
+      this.emit('LocalInvitationReceivedByPeer')
+    })
+
+    //Cancel call invitation
+    this._invitation.on('LocalInvitationCanceled', () => {
+      this.emit('LocalInvitationCanceled')
+    })
+
+    //Called accepted call invitation
+    this._invitation.on('LocalInvitationAccepted', () => {
+      this.status = 'meeting'
+      this.emit('LocalInvitationAccepted')
+    })
+
+    //Called down
+    this._invitation.on('LocalInvitationRefused', () => {
+      this.status = 'onLine'
+      this.emit('LocalInvitationRefused')
+    })
+
+    //Local call failed
+    this._invitation.on('LocalInvitationFailure', () => {
+      this.status = 'onLine'
+      this.emit('LocalInvitationFailure')
+    })
+    // this.subscribeLocalInvitation()
     // 发送呼叫邀请
     return this._invitation.send()
   }
 
+  //Cancel call invitation
   cancelCall() {
-    return this._invitation.cancel()
+    this._invitation && this._invitation.cancel()
+    this.status = 'onLine'
   }
 
-  // 接受呼叫邀请
+  //Accept call invitation
   acceptCall() {
-    return this._remoteInvitation.accept()
+    console.log('0-0000000000000000000000', this._remoteInvitation)
+    this._remoteInvitation && this._remoteInvitation.accept()
+    this.status = 'meeting'
   }
 
-  // 拒绝呼叫邀请
+  //Decline call invitation
   refuseCall() {
-    return this._remoteInvitation.refuse()
+    this._remoteInvitation && this._remoteInvitation.refuse()
+    this.status = 'onLine'
   }
 
   /**
@@ -222,45 +259,100 @@ export default class RTCClient extends EventEmitter {
     ]
     events.forEach(evt => {
       this._invitation.on(evt, (...args) => {
-        console.log('evt=============', evt)
+        switch (evt) {
+          case 'LocalInvitationReceivedByPeer': {
+            this._status = 'calling'
+            break
+          }
+          case 'LocalInvitationCanceled': {
+            this._status = null
+            break
+          }
+          case 'LocalInvitationAccepted': {
+            this._status = 'meeting'
+            break
+          }
+          case 'LocalInvitationRefused': {
+            this._status = 'onLine'
+            break
+          }
+          case 'LocalInvitationFailure': {
+            this._status = 'onLine'
+            break
+          }
+          default: {
+            this._status = null
+          }
+        }
+        console.log('evt================', evt, ...args, this._status)
         this.emit(evt, ...args)
       })
     })
   }
 
-  /**
-   * 订阅被呼叫
-   */
-  subscribeRemoteInvitation() {
-    const events = [
-      'RemoteInvitationAccepted',
-      'RemoteInvitationCanceled',
-      'RemoteInvitationFailure',
-      'RemoteInvitationRefused'
-    ]
-    events.forEach(evt => {
-      this._remoteInvitation.on(evt, (...args) => {
-        this.emit(evt, ...args)
-      })
+  peerInvitation() {
+    //Remote monitor receives call invitation
+    this._client.on('RemoteInvitationReceived', remoteInvitation => {
+      // if (this.status !== 'onLine') {
+      //   setTimeout(() => {
+      //     remoteInvitation.refuse()
+      //   }, 5000)
+      //   return
+      // }
+      if (this._remoteInvitation !== null) {
+        this._remoteInvitation.removeAllListeners()
+        this._remoteInvitation = null
+      }
+      this.status = 'calling'
+      this._remoteInvitation = remoteInvitation
+      console.log('Receive call invitation======', this._remoteInvitation)
+
+      this.peerEvents()
+      this.emit('RemoteInvitationReceived', remoteInvitation)
     })
   }
-  // on(evt, callback) {
-  //   const customEvents = [
-  //     'LocalInvitationReceivedByPeer',
-  //     'LocalInvitationCanceled',
-  //     'LocalInvitationAccepted',
-  //     'LocalInvitationRefused',
-  //     'LocalInvitationFailure',
-  //     'RemoteInvitationReceived',
-  //     'RemoteInvitationCanceled',
-  //     'RemoteInvitationAccepted',
-  //     'RemoteInvitationRefused',
-  //     'RemoteInvitationFailure'
-  //   ]
-  //   if (customEvents.indexOf(evt) !== -1) {
-  //     this.emit(evt, callback)
-  //     return
-  //   }
-  //   this._client.on(evt, callback)
-  // }
+
+  peerEvents() {
+    //The caller has cancelled the call invitation
+    this._remoteInvitation.on('RemoteInvitationCanceled', () => {
+      this.status = 'onLine'
+      this.emit('RemoteInvitationCanceled')
+    })
+
+    //Accepted call invitation successfully
+    this._remoteInvitation.on('RemoteInvitationAccepted', () => {
+      this.emit('RemoteInvitationAccepted')
+    })
+
+    //Call invitation rejected successfully
+    this._remoteInvitation.on('RemoteInvitationRefused', () => {
+      this.eventBus.emit('RemoteInvitationRefused')
+    })
+
+    //Call invitation process failed
+    this._remoteInvitation.on('RemoteInvitationFailure', () => {
+      this.status = 'onLine'
+      this.emit('RemoteInvitationFailure')
+    })
+  }
+
+  on(evt, callback) {
+    const customEvents = [
+      'LocalInvitationReceivedByPeer',
+      'LocalInvitationCanceled',
+      'LocalInvitationAccepted',
+      'LocalInvitationRefused',
+      'LocalInvitationFailure',
+      // 'RemoteInvitationReceived',
+      'RemoteInvitationCanceled',
+      'RemoteInvitationAccepted',
+      'RemoteInvitationRefused',
+      'RemoteInvitationFailure'
+    ]
+    if (customEvents.indexOf(evt) !== -1) {
+      this.emit(evt, callback)
+      return
+    }
+    this._client.on(evt, callback)
+  }
 }

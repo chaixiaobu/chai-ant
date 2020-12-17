@@ -122,6 +122,9 @@
           群聊呼叫邀请
         </a-button>
       </a-col>
+      <a-col :span="8">
+        <p>{{ localStatus }}</p>
+      </a-col>
     </a-row>
   </div>
 </template>
@@ -162,7 +165,8 @@ export default {
         memberId: ''
       },
       imgSrc: require('../../assets/logo.png'),
-      imgList: []
+      imgList: [],
+      localStatus: null
     }
   },
   mounted() {
@@ -211,9 +215,6 @@ export default {
       })
 
       rtm.on('RemoteInvitationReceived', res => {
-        console.log('res===================1', res)
-        rtm._remoteInvitation = res
-        rtm.subscribeRemoteInvitation()
         this.$confirm({
           title: res.callerId + '向你发来呼叫邀请！',
           content: '',
@@ -228,24 +229,7 @@ export default {
           }
         })
       })
-
-      // rtm.on('LocalInvitationReceivedByPeer', res => {
-      //   console.log('res===================', res)
-      //   // rtm.subscribeRemoteInvitation()
-      //   this.$confirm({
-      //     title: res.callerId + '向你发来呼叫邀请！',
-      //     content: '',
-      //     okText: '接受',
-      //     okType: 'danger',
-      //     cancelText: '拒绝',
-      //     onOk() {
-      //       rtm.acceptCall()
-      //     },
-      //     onCancel() {
-      //       rtm.refuseCall()
-      //     }
-      //   })
-      // })
+      this.initInvitation()
     },
     // 加入频道
     async handleJoin() {
@@ -258,7 +242,7 @@ export default {
         return
       }
 
-      rtm.init(this.form.appid)
+      rtm.init()
 
       rtm.login(accountName, this.form.token).then(() => {
         this.$message.success('登录成功！')
@@ -379,7 +363,8 @@ export default {
     async sendCall() {
       await this.checkLogin()
       const rtm = this.rtm
-      rtm.sendCall(this.data.peerId)
+      await rtm.sendCall(this.data.peerId)
+      this.initInvitation()
     },
     async sendChannelCall() {
       await this.checkLogin()
@@ -429,6 +414,29 @@ export default {
           return
         }
         resolve()
+      })
+    },
+    initInvitation() {
+      const rtm = this.rtm
+      rtm.on('LocalInvitationReceivedByPeer', () => {
+        console.log('res===================', rtm._status)
+        this.localStatus = '等待中。。。'
+      })
+      rtm.on('LocalInvitationAccepted', () => {
+        console.log('res===================', rtm._status)
+        this.localStatus = '接受了'
+      })
+      rtm.on('LocalInvitationCanceled', () => {
+        console.log('res===================', rtm._status)
+        this.localStatus = 'local取消了'
+      })
+      rtm.on('LocalInvitationFailure', () => {
+        console.log('res===================', rtm._status)
+        this.localStatus = '呼叫失败了'
+      })
+      rtm.on('LocalInvitationRefused', () => {
+        console.log('res===================', rtm._status)
+        this.localStatus = '呼叫被拒绝了'
       })
     }
   }
